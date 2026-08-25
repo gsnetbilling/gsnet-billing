@@ -1,0 +1,10 @@
+{
+  "name": "GSNET Billing",
+  "short_name": "GSNET",
+  "description": "Aplikasi Billing GSNET",
+  "start_url": "./GSNET_Billing_App_V3_Pengeluaran.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait"
+}
