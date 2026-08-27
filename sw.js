@@ -1,15 +1,32 @@
-const CACHE_NAME = "gsnet-billing-v1";
+const CACHE_NAME = "gsnet-billing-v2";
 
 const FILES_TO_CACHE = [
   "./",
-  "./GSNET_Billing_App_V3_Pengeluaran.html",
-  "./manifest.json"
+  "./index.html",
+  "./GSNET_Billing_App_V3_Pengeluaran_UPDATED.html",
+  "./manifest.json",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(FILES_TO_CACHE))
   );
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+      )
+    )
+  );
+  self.clients.claim();
 });
 
 self.addEventListener("fetch", event => {
