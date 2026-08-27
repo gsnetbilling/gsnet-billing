@@ -181,4 +181,8 @@ function deleteExpense(id){if(!confirm('Hapus pengeluaran ini?'))return;expenses
 
 function resetData(){if(confirm('Reset semua pembayaran September?')){localStorage.removeItem(key);location.reload()}}
 render();
+</script><script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js");
+}
 </script></body></html>
