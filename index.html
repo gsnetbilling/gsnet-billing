@@ -1,31 +1,354 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GSNET Billing</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#18212f}
+header{background:#102a43;color:#fff;padding:18px 16px;position:sticky;top:0;z-index:5}
+h1{margin:0;font-size:22px}.sub{opacity:.8;font-size:13px;margin-top:4px}
+main{max-width:900px;margin:auto;padding:16px 16px 90px}.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.card{background:#fff;border-radius:14px;padding:15px;box-shadow:0 2px 8px #0000000d}.label{font-size:12px;color:#6b7280}.num{font-size:22px;font-weight:700;margin-top:5px}
+.green{border-left:5px solid #16a34a}.orange{border-left:5px solid #f59e0b}.red{border-left:5px solid #dc2626}.blue{border-left:5px solid #2563eb}
+.section{margin-top:18px}.section h2{font-size:17px;margin:0 0 10px}.search{width:100%;padding:12px;border:1px solid #d7dce3;border-radius:10px;font-size:15px}
+.row{background:#fff;margin:8px 0;padding:13px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.name{font-weight:700}.meta{font-size:12px;color:#687386;margin-top:4px}.badge{padding:6px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+.b-lunas{background:#dcfce7;color:#166534}.b-belum{background:#fff7ed;color:#9a3412}.b-iso{background:#fee2e2;color:#991b1b}.b-jt{background:#fef3c7;color:#92400e}
+button{border:0;border-radius:9px;padding:9px 11px;font-weight:700;cursor:pointer}.pay{background:#102a43;color:#fff}.secondary{background:#e8eef5;color:#102a43}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;display:flex;justify-content:center;z-index:8}
+nav button{flex:1;max-width:225px;background:#fff;border-radius:0;padding:13px 3px;color:#64748b;font-size:12px}nav button.active{color:#102a43;font-weight:800}
+.hidden{display:none}
+.searchIcon{background:#fff;color:#102a43;border-radius:10px;padding:8px 10px;font-size:18px;line-height:1;min-width:42px}
+.globalSearchWrap{margin-top:12px}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}.sheet{background:#fff;width:100%;max-width:700px;margin:auto;border-radius:18px 18px 0 0;padding:20px}.sheet h3{margin-top:0}.field{margin:12px 0}.field label{font-size:12px;color:#64748b;display:block;margin-bottom:5px}.field input,.field select{width:100%;padding:11px;border:1px solid #d7dce3;border-radius:9px}
+.actions{display:flex;gap:8px}.actions button{flex:1}.notice{padding:12px;background:#eef6ff;border-radius:10px;font-size:13px}
+@media(min-width:700px){.cards{grid-template-columns:repeat(4,1fr)}.modal{align-items:center}.sheet{border-radius:18px}}
+.pillbar{display:flex;gap:7px;overflow:auto;margin:10px 0}.pill{white-space:nowrap;background:#fff;border:1px solid #d7dce3}.empty{padding:16px;text-align:center;color:#64748b;background:#fff;border-radius:12px}.small{font-size:12px;color:#64748b}
 
-  <title>GSNET Billing</title>
+<style>
+.month-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.customer-form{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.customer-form .full{grid-column:1/-1}
+@media(max-width:520px){.customer-form{grid-template-columns:1fr}.customer-form .full{grid-column:auto}}
+.action-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.action-row button{flex:1;min-width:90px}
+.history-month{margin-top:10px}
+.stat-mini{font-size:12px;color:#64748b;margin-top:4px}
+</style>
+</style></head><body>
+<header>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+  <div><h1>GSNET BILLING</h1><div class="sub" id="periodLabel"></div></div>
+  <button id="globalSearchBtn" class="searchIcon" onclick="toggleGlobalSearch()" aria-label="Cari pelanggan">🔍</button>
+</div>
+<div id="globalSearchWrap" class="globalSearchWrap hidden">
+  <input id="globalSearch" class="search" placeholder="Cari nama / PPPoE / ID..." autocomplete="off">
+</div>
+</header>
+<main>
+<section id="dashboard">
+<div class="cards">
+<div class="card blue"><div class="label">Total Pelanggan</div><div class="num" id="total">39</div></div>
+<div class="card green"><div class="label">Lunas</div><div class="num" id="lunas">0</div></div>
+<div class="card orange"><div class="label">Belum Bayar</div><div class="num" id="belum">39</div></div>
+<div class="card red"><div class="label">Siap Isolir</div><div class="num" id="iso">0</div></div>
+</div>
+<div class="section"><div class="cards">
+<div class="card"><div class="label">Total Tagihan</div><div class="num" id="totalMoney">Rp0</div></div>
+<div class="card"><div class="label">Uang Masuk</div><div class="num" id="paidMoney">Rp0</div></div>
+<div class="card"><div class="label">Piutang</div><div class="num" id="debtMoney">Rp0</div></div>
+<div class="card"><div class="label">Cash / Transfer</div><div class="num" id="methods">Rp0 / Rp0</div></div><div class="card"><div class="label">Pengeluaran</div><div class="num" id="expenseMoney">Rp0</div></div><div class="card"><div class="label">Saldo Bersih</div><div class="num" id="netMoney">Rp0</div></div>
+</div></div>
+<div class="section"><h2>🔔 Perlu diperhatikan hari ini</h2><div id="todayList"></div></div>
+</section>
 
-  <meta name="theme-color" content="#0066ff">
-  <link rel="manifest" href="./manifest.json">
+<section id="customers" class="hidden"><div class="section"><h2>👥 Pelanggan</h2>
+<div class="action-row"><button class="pay" onclick="openCustomerModal()">+ Tambah Pelanggan</button></div>
+<input id="search" class="search" placeholder="Cari nama / PPPoE..." style="margin-top:10px">
+<div id="customerList"></div></div></section>
+<section id="billing" class="hidden"><div class="section"><h2>💰 Tagihan <span id="billingPeriod"></span></h2><div class="notice">Reminder hanya 1x pada hari jatuh tempo. H+5 = siap isolir jika belum Lunas.</div><div id="billingList"></div></div></section>
+<section id="history" class="hidden"><div class="section"><h2>📚 Histori Pembayaran</h2>
+<div class="card">
+<label class="small">Pilih periode</label>
+<select id="historyPeriod" style="width:100%;padding:11px;border:1px solid #d7dce3;border-radius:9px" onchange="renderHistoryPeriod()"></select>
+<div id="historyPeriodSummary" class="stat-mini"></div>
+</div>
+<div id="historyList" class="history-month"></div></div></section>
+<section id="expenses" class="hidden"><div class="section"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2>💸 Pengeluaran <span id="expensePeriod"></span></h2><button class="pay" onclick="openExpenseModal()">+ Catat</button></div><div class="notice">Pengeluaran tersimpan khusus bulan aktif dan tidak mengubah tagihan pelanggan.</div><div id="expenseSummary" class="cards" style="margin-top:10px"></div><div id="expenseList"></div></div></section>
+<section id="settings" class="hidden"><div class="section"><h2>⚙️ Pengaturan</h2><div class="card"><b>Aturan GSNET</b><p>• Reminder: hari H, 1x<br>• Toleransi: H+1 s/d H+4<br>• H+5: siap isolir<br>• Perubahan paket/harga: berlaku bulan berikutnya<br>• Tidak ada prorata<br>• WA pelanggan tetap dikelola sendiri</p><div class="actions" style="margin-top:12px"><button class="secondary" onclick="exportData()">⬇️ Backup JSON</button><button class="secondary" onclick="document.getElementById('importFile').click()">⬆️ Restore</button></div>
+<input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
+<button class="secondary" onclick="resetData()" style="margin-top:8px">Reset pembayaran bulan aktif</button>
+<div style="margin-top:12px" class="notice">
+<b>📅 Periode Tagihan</b>
+<div class="small" style="margin:6px 0 8px">Pilih bulan untuk membuat periode tagihan baru tanpa menghapus pelanggan atau histori.</div>
+<div class="actions">
+<button class="pay" onclick="changeMonth()">Ganti Bulan</button>
+</div>
+</div></div></div></section>
+</main>
+<nav><button id="n-dashboard" class="active" onclick="show('dashboard',this)">🏠<br>Dashboard</button><button id="n-customers" onclick="show('customers',this)">👥<br>Pelanggan</button><button id="n-billing" onclick="show('billing',this)">💰<br>Tagihan</button><button id="n-history" onclick="show('history',this)">📚<br>Histori</button><button id="n-expenses" onclick="show('expenses',this)">💸<br>Pengeluaran</button><button id="n-settings" onclick="show('settings',this)">⚙️<br>Setting</button></nav>
 
-  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
-  <link rel="apple-touch-icon" href="./icon-192.png">
-</head>
+<div id="modal" class="modal"><div class="sheet">
+<h3 id="modalName"></h3><div id="modalInfo" class="meta"></div>
+<div class="field"><label>Status</label><select id="mStatus"><option>Belum Bayar</option><option>Lunas</option></select></div>
+<div class="field"><label>Tanggal Bayar</label><input id="mDate" type="date"></div>
+<div class="field"><label>Metode Bayar</label><select id="mMethod"><option value="">Pilih</option><option>Cash</option><option>Transfer</option></select></div>
+<div class="actions"><button class="secondary" onclick="closeModal()">Batal</button><button class="pay" onclick="savePayment()">Simpan</button></div>
+</div></div>
+<div id="customerModal" class="modal"><div class="sheet">
+<h3 id="customerModalTitle">Tambah Pelanggan</h3>
+<div class="customer-form">
+<div class="field"><label>ID Pelanggan</label><input id="cId" placeholder="GS040"></div>
+<div class="field"><label>Nama</label><input id="cName" placeholder="Nama pelanggan"></div>
+<div class="field"><label>PPPoE</label><input id="cPppoe" placeholder="username"></div>
+<div class="field"><label>Paket</label><input id="cPackage" placeholder="20 Mbps"></div>
+<div class="field"><label>Harga</label><input id="cPrice" type="number" min="0" step="1000" placeholder="150000"></div>
+<div class="field"><label>Jatuh Tempo (tanggal)</label><input id="cDue" type="number" min="1" max="31" placeholder="3"></div>
+<div class="field full"><label>Status Pelanggan</label><select id="cActive"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
+</div>
+<div class="actions"><button class="secondary" onclick="closeCustomerModal()">Batal</button><button class="pay" onclick="saveCustomer()">Simpan</button></div>
+</div></div>
+<div id="expenseModal" class="modal"><div class="sheet">
+<h3 id="expenseModalTitle">Catat Pengeluaran</h3>
+<div class="field"><label>Tanggal</label><input id="eDate" type="date"></div>
+<div class="field"><label>Kategori</label><select id="eCategory"><option>Internet</option><option>Listrik</option><option>Peralatan</option><option>Operasional</option><option>Transport</option><option>Teknisi</option><option>Lainnya</option></select></div>
+<div class="field"><label>Keterangan</label><input id="eNote" type="text" placeholder="Contoh: Bayar Megavision September"></div>
+<div class="field"><label>Nominal</label><input id="eAmount" type="number" min="0" step="1000" placeholder="800000"></div>
+<div class="field"><label>Metode</label><select id="eMethod"><option value="">Pilih</option><option>Cash</option><option>Transfer</option></select></div>
+<div class="actions"><button class="secondary" onclick="closeExpenseModal()">Batal</button><button class="pay" onclick="saveExpense()">Simpan</button></div>
+</div></div>
+<script>
+const base=[{"id": "GS001", "name": "Anita", "pppoe": "wai", "package": "20 Mbps", "price": 120000, "due": 3, "active": true}, {"id": "GS002", "name": "Ambon", "pppoe": "ambon", "package": "20 Mbps", "price": 120000, "due": 3, "active": true}, {"id": "GS003", "name": "Sanah", "pppoe": "anwar", "package": "20 Mbps", "price": 120000, "due": 3, "active": true}, {"id": "GS004", "name": "Sandi", "pppoe": "sandi", "package": "20 Mbps", "price": 150000, "due": 3, "active": true}, {"id": "GS005", "name": "Yanah", "pppoe": "yanah", "package": "20 Mbps", "price": 120000, "due": 3, "active": true}, {"id": "GS006", "name": "Wawan", "pppoe": "wawan", "package": "20 Mbps", "price": 120000, "due": 3, "active": true}, {"id": "GS007", "name": "Nunung", "pppoe": "nunung", "package": "20 Mbps", "price": 120000, "due": 3, "active": true}, {"id": "GS008", "name": "Octa", "pppoe": "okta", "package": "20 Mbps", "price": 150000, "due": 3, "active": true}, {"id": "GS009", "name": "Nining", "pppoe": "nining", "package": "20 Mbps", "price": 100000, "due": 3, "active": true}, {"id": "GS010", "name": "Yuyun", "pppoe": "yuyun", "package": "20 Mbps", "price": 120000, "due": 3, "active": true}, {"id": "GS011", "name": "Rimah", "pppoe": "rimah", "package": "20 Mbps", "price": 150000, "due": 1, "active": true}, {"id": "GS012", "name": "Kentung", "pppoe": "kentung", "package": "20 Mbps", "price": 100000, "due": 3, "active": true}, {"id": "GS013", "name": "Amat", "pppoe": "apis", "package": "20 Mbps", "price": 150000, "due": 3, "active": true}, {"id": "GS014", "name": "Ipang", "pppoe": "ipang", "package": "20 Mbps", "price": 150000, "due": 3, "active": true}, {"id": "GS015", "name": "Dagol", "pppoe": "dagol", "package": "20 Mbps", "price": 150000, "due": 5, "active": true}, {"id": "GS016", "name": "Amel", "pppoe": "amel", "package": "10 Mbps", "price": 120000, "due": 10, "active": true}, {"id": "GS017", "name": "Fikri", "pppoe": "fikri", "package": "20 Mbps", "price": 150000, "due": 11, "active": true}, {"id": "GS018", "name": "Zetira", "pppoe": "zetira", "package": "20 Mbps", "price": 150000, "due": 22, "active": true}, {"id": "GS019", "name": "Hamlah", "pppoe": "hamlah", "package": "10 Mbps", "price": 120000, "due": 26, "active": true}, {"id": "GS020", "name": "Krisna", "pppoe": "krisna", "package": "20 Mbps", "price": 150000, "due": 5, "active": true}, {"id": "GS021", "name": "Ipan", "pppoe": "ipan", "package": "20 Mbps", "price": 130000, "due": 1, "active": true}, {"id": "GS022", "name": "Andre", "pppoe": "andre", "package": "20 Mbps", "price": 150000, "due": 3, "active": true}, {"id": "GS023", "name": "Nisa", "pppoe": "nisa", "package": "10 Mbps", "price": 120000, "due": 3, "active": true}, {"id": "GS024", "name": "Aira", "pppoe": "aira", "package": "10 Mbps", "price": 120000, "due": 4, "active": true}, {"id": "GS025", "name": "Darman", "pppoe": "darman", "package": "10 Mbps", "price": 120000, "due": 5, "active": true}, {"id": "GS026", "name": "Sundari", "pppoe": "sundari", "package": "10 Mbps", "price": 120000, "due": 5, "active": true}, {"id": "GS027", "name": "Siti", "pppoe": "siti", "package": "20 Mbps", "price": 150000, "due": 6, "active": true}, {"id": "GS028", "name": "Rizal", "pppoe": "rizal", "package": "20 Mbps", "price": 150000, "due": 9, "active": true}, {"id": "GS029", "name": "Wardah", "pppoe": "wardah", "package": "20 Mbps", "price": 150000, "due": 10, "active": true}, {"id": "GS030", "name": "Azhanov", "pppoe": "azhanov", "package": "10 Mbps", "price": 120000, "due": 14, "active": true}, {"id": "GS031", "name": "Kela", "pppoe": "kela", "package": "20 Mbps", "price": 150000, "due": 28, "active": true}, {"id": "GS032", "name": "Ernasari", "pppoe": "ernasari", "package": "10 Mbps", "price": 120000, "due": 29, "active": true}, {"id": "GS033", "name": "Alif", "pppoe": "alif", "package": "20 Mbps", "price": 150000, "due": 5, "active": true}, {"id": "GS034", "name": "Dewi", "pppoe": "dewi", "package": "10 Mbps", "price": 120000, "due": 11, "active": true}, {"id": "GS035", "name": "Jaya", "pppoe": "jaya", "package": "20 Mbps", "price": 150000, "due": 16, "active": true}, {"id": "GS036", "name": "Anto", "pppoe": "anto", "package": "10 Mbps", "price": 120000, "due": 19, "active": true}, {"id": "GS037", "name": "Ebo", "pppoe": "ebo", "package": "20 Mbps", "price": 120000, "due": 3, "active": true}, {"id": "GS038", "name": "Santi", "pppoe": "santi", "package": "10 Mbps", "price": 120000, "due": 1, "active": true}, {"id": "GS039", "name": "Iin", "pppoe": "iin", "package": "10 Mbps", "price": 120000, "due": 7, "active": true}];
+const periodKey='gsnet_active_period_v2';
+let activePeriod=JSON.parse(localStorage.getItem(periodKey)||'null')||{year:2026,month:8};
+const monthNames=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const periodName=()=>monthNames[activePeriod.month]+' '+activePeriod.year;
+const dataKey=()=>`gsnet_billing_${activePeriod.year}_${String(activePeriod.month+1).padStart(2,'0')}_v2`;
+const expenseDataKey=()=>`gsnet_expenses_${activePeriod.year}_${String(activePeriod.month+1).padStart(2,'0')}_v2`;
+const customerKey='gsnet_customers_v5';
+const customerHistoryPrefix='gsnet_billing_';
+function loadCustomers(){
+  const saved=JSON.parse(localStorage.getItem(customerKey)||'null');
+  if(saved && Array.isArray(saved)) return saved;
+  localStorage.setItem(customerKey,JSON.stringify(base));
+  return base.map(x=>({...x}));
+}
+let customers=loadCustomers();
+const legacySepKey='gsnet_billing_sep2026_v1';
+const legacyExpKey='gsnet_expenses_sep2026_v1';
+if(activePeriod.year===2026&&activePeriod.month===8&&!localStorage.getItem(dataKey())&&localStorage.getItem(legacySepKey))localStorage.setItem(dataKey(),localStorage.getItem(legacySepKey));
+if(activePeriod.year===2026&&activePeriod.month===8&&!localStorage.getItem(expenseDataKey())&&localStorage.getItem(legacyExpKey))localStorage.setItem(expenseDataKey(),localStorage.getItem(legacyExpKey));
 
-<body style="margin:0; padding:0;">
+function customerStateForPeriod(){
+  const saved=JSON.parse(localStorage.getItem(dataKey())||'null');
+  const oldList=Array.isArray(saved)?saved:[];
+  return customers.map(c=>{
+    const old=oldList.find(x=>x.id===c.id);
+    return {...c,status:old?.status||'Belum Bayar',paidDate:old?.paidDate||'',method:old?.method||''};
+  });
+}
 
-  <iframe
-    src="./GSNET_Billing_App_V3_Pengeluaran_UPDATED.html"
-    style="width:100%; height:100vh; border:0;"
-    title="GSNET Billing">
-  </iframe>
+let state=customerStateForPeriod();
+let expenses=JSON.parse(localStorage.getItem(expenseDataKey())||'[]');
+const rp=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n);
+const dueDate=x=>new Date(activePeriod.year,activePeriod.month,x.due);
+const isoDate=x=>{let d=dueDate(x);d.setDate(d.getDate()+5);return d};
+const statusNow=x=>{
+ if(x.status==='Lunas')return 'Lunas';
+ let t=new Date();t.setHours(0,0,0,0); let d=dueDate(x), i=isoDate(x);
+ if(t.getTime()>=i.getTime())return 'Siap Isolir';
+ if(t.getTime()>=d.getTime())return 'Jatuh Tempo';
+ return 'Belum Jatuh Tempo';
+};
+function save(){localStorage.setItem(customerKey,JSON.stringify(customers));localStorage.setItem(dataKey(),JSON.stringify(state));localStorage.setItem(expenseDataKey(),JSON.stringify(expenses));render()}
+function badge(s){return `<span class="badge ${s==='Lunas'?'b-lunas':s==='Siap Isolir'?'b-iso':s==='Jatuh Tempo'?'b-jt':'b-belum'}">${s}</span>`}
+function row(x,withButton=true){
+ let s=statusNow(x), iso=isoDate(x).toLocaleDateString('id-ID'), due=x.due+'/'+String(activePeriod.month+1).padStart(2,'0')+'/'+activePeriod.year;
+ let activeBadge=x.active===false?'<span class="badge b-iso" style="margin-left:4px">Nonaktif</span>':'';
+ return `<div class="row"><div><div class="name">${x.id} • ${x.name} ${activeBadge}</div><div class="meta">${x.package} • ${rp(x.price)} • PPPoE: ${x.pppoe}<br>JT: ${due} • H+5: ${iso}</div></div><div>${badge(s)}<br>${withButton?`<button class="pay" style="margin-top:6px" onclick="openModal('${x.id}')">${x.status==='Lunas'?'Edit':'Catat Bayar'}</button><button class="secondary" style="margin-top:6px" onclick="openCustomerModal('${x.id}')">Edit Data</button>`:''}</div></div>`;
+}
 
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js");
-    }
-  </script>
+function exportData(){
+ const blob=new Blob([JSON.stringify({version:'GSNET V4',period:periodName(),year:activePeriod.year,month:activePeriod.month,exportedAt:new Date().toISOString(),customers:customers,state:state,expenses:expenses},null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`GSNET_Billing_Backup_${activePeriod.year}_${String(activePeriod.month+1).padStart(2,'0')}.json`;a.click();URL.revokeObjectURL(a.href);
+}
+function importData(e){
+ const file=e.target.files[0]; if(!file)return;
+ const r=new FileReader(); r.onload=()=>{try{
+   const d=JSON.parse(r.result); if(!Array.isArray(d.customers))throw 0;
+   if(Array.isArray(d.customers)){customers=d.customers; localStorage.setItem(customerKey,JSON.stringify(customers));} state=Array.isArray(d.state)?d.state:d.customers; expenses=Array.isArray(d.expenses)?d.expenses:[];
+   if(Number.isInteger(d.year)&&Number.isInteger(d.month)&&d.month>=0&&d.month<=11){
+     activePeriod={year:d.year,month:d.month};
+     localStorage.setItem(periodKey,JSON.stringify(activePeriod));
+   }
+   save(); alert('Backup berhasil dipulihkan untuk periode '+periodName()+'.');
+ }catch(err){alert('File backup tidak valid.')}}; r.readAsText(file); e.target.value='';
+}
 
-</body>
-</html>
+
+function render(){
+ renderHistoryOptions();
+ let billable=state.filter(x=>x.active!==false), total=billable.reduce((a,x)=>a+x.price,0), paid=billable.filter(x=>x.status==='Lunas'), p=paid.reduce((a,x)=>a+x.price,0);
+ let iso=billable.filter(x=>statusNow(x)==='Siap Isolir'), belum=billable.length-paid.length;
+ document.getElementById('total').textContent=billable.length;document.getElementById('lunas').textContent=paid.length;document.getElementById('belum').textContent=belum;document.getElementById('iso').textContent=iso.length;
+ document.getElementById('totalMoney').textContent=rp(total);document.getElementById('paidMoney').textContent=rp(p);document.getElementById('debtMoney').textContent=rp(total-p);
+ let cash=paid.filter(x=>x.method==='Cash').reduce((a,x)=>a+x.price,0), tr=paid.filter(x=>x.method==='Transfer').reduce((a,x)=>a+x.price,0);
+ document.getElementById('methods').textContent=rp(cash)+' / '+rp(tr);
+ let today=new Date(); today.setHours(0,0,0,0);
+ let dueToday=state.filter(x=>x.status!=='Lunas'&&dueDate(x).getTime()===today.getTime());
+ document.getElementById('todayList').innerHTML=dueToday.length?dueToday.map(x=>row(x)).join(''):'<div class="card">Tidak ada reminder jatuh tempo hari ini. 👍</div>';
+ document.getElementById('customerList').innerHTML=filtered().map(x=>row(x)).join('');
+ document.getElementById('billingList').innerHTML=filtered().filter(x=>x.active!==false).map(x=>row(x)).join('') || '<div class="card">Pelanggan tidak ditemukan.</div>';
+ document.getElementById('historyList').innerHTML=state.filter(x=>x.status==='Lunas').map(x=>`<div class="row"><div><div class="name">${x.id} • ${x.name}</div><div class="meta">${periodName()} • ${rp(x.price)} • ${x.paidDate||'-'} • ${x.method||'-'}</div></div>${badge('Lunas')}</div>`).join('') || '<div class="card">Belum ada pembayaran tercatat.</div>';
+ let expenseTotal=expenses.reduce((a,x)=>a+Number(x.amount||0),0);
+ document.getElementById('expenseMoney').textContent=rp(expenseTotal);
+ document.getElementById('netMoney').textContent=rp(p-expenseTotal);
+ document.getElementById('expenseSummary').innerHTML=`<div class="card"><div class="label">Total Pengeluaran</div><div class="num">${rp(expenseTotal)}</div></div><div class="card"><div class="label">Saldo Bersih</div><div class="num">${rp(p-expenseTotal)}</div></div>`;
+ document.getElementById('expenseList').innerHTML=expenses.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(x=>`<div class="row"><div><div class="name">${x.category} • ${rp(Number(x.amount||0))}</div><div class="meta">${x.date||'-'} • ${x.note||'-'} • ${x.method||'-'}</div></div><button class="secondary" onclick="deleteExpense('${x.id}')">Hapus</button></div>`).join('') || '<div class="card">Belum ada pengeluaran tercatat.</div>';
+}
+function getSearchQuery(){
+  return (document.getElementById('globalSearch')?.value || document.getElementById('search')?.value || '').trim().toLowerCase();
+}
+function filtered(){
+  let q=getSearchQuery();
+  return state.filter(x=>(x.name+' '+x.pppoe+' '+x.id).toLowerCase().includes(q));
+}
+function toggleGlobalSearch(){
+  const wrap=document.getElementById('globalSearchWrap');
+  const input=document.getElementById('globalSearch');
+  wrap.classList.toggle('hidden');
+  if(!wrap.classList.contains('hidden')){
+    input.focus();
+  }else{
+    input.value='';
+    render();
+  }
+}
+function show(id,btn){['dashboard','customers','billing','history','expenses','settings'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');render()}
+document.getElementById('search').addEventListener('input',render);
+document.getElementById('globalSearch').addEventListener('input',function(){
+  const local=document.getElementById('search');
+  if(local) local.value=this.value;
+  render();
+});
+let current=null;
+function openModal(id){current=state.find(x=>x.id===id);document.getElementById('modalName').textContent=current.name+' — '+current.id;document.getElementById('modalInfo').textContent=current.package+' • '+rp(current.price)+' • PPPoE '+current.pppoe;document.getElementById('mStatus').value=current.status;document.getElementById('mDate').value=current.paidDate||new Date().toISOString().slice(0,10);document.getElementById('mMethod').value=current.method||'';document.getElementById('modal').style.display='flex'}
+function closeModal(){document.getElementById('modal').style.display='none'}
+function savePayment(){if(!current)return;current.status=document.getElementById('mStatus').value;current.paidDate=current.status==='Lunas'?document.getElementById('mDate').value:'';current.method=current.status==='Lunas'?document.getElementById('mMethod').value:'';if(current.status==='Lunas'&&!current.method){alert('Pilih Cash atau Transfer.');return}save();closeModal()}
+let currentExpense=null;
+function openExpenseModal(id){
+ currentExpense=id?expenses.find(x=>x.id===id):null;
+ document.getElementById('expenseModalTitle').textContent=currentExpense?'Edit Pengeluaran':'Catat Pengeluaran';
+ document.getElementById('eDate').value=currentExpense?.date||new Date().toISOString().slice(0,10);
+ document.getElementById('eCategory').value=currentExpense?.category||'Internet';
+ document.getElementById('eNote').value=currentExpense?.note||'';
+ document.getElementById('eAmount').value=currentExpense?.amount||'';
+ document.getElementById('eMethod').value=currentExpense?.method||'';
+ document.getElementById('expenseModal').style.display='flex';
+}
+function closeExpenseModal(){document.getElementById('expenseModal').style.display='none';currentExpense=null}
+function saveExpense(){
+ const date=document.getElementById('eDate').value, category=document.getElementById('eCategory').value, note=document.getElementById('eNote').value.trim(), amount=Number(document.getElementById('eAmount').value), method=document.getElementById('eMethod').value;
+ if(!date||!category||!amount||amount<0||!method){alert('Lengkapi tanggal, kategori, nominal, dan metode.');return}
+ if(currentExpense){Object.assign(currentExpense,{date,category,note,amount,method});}
+ else{expenses.push({id:'EXP'+Date.now(),date,category,note,amount,method});}
+ save();closeExpenseModal();
+}
+function deleteExpense(id){if(!confirm('Hapus pengeluaran ini?'))return;expenses=expenses.filter(x=>x.id!==id);save()}
+
+function updatePeriodUI(){
+  const p=periodName();
+  document.getElementById('periodLabel').textContent=p+' • '+state.length+' pelanggan';
+  document.getElementById('billingPeriod').textContent=p;
+  document.getElementById('expensePeriod').textContent=p;
+}
+function changeMonth(){
+  const current=periodName();
+  const input=prompt('Masukkan bulan baru (format MM/YYYY).\nContoh: 10/2026\n\nPeriode saat ini: '+current);
+  if(input===null)return;
+  const m=String(input).trim().match(/^(0?[1-9]|1[0-2])\/(\d{4})$/);
+  if(!m){alert('Format tidak valid. Gunakan MM/YYYY, contoh 10/2026.');return}
+  const newMonth=Number(m[1])-1, newYear=Number(m[2]);
+  if(newYear<2020||newYear>2100){alert('Tahun tidak valid.');return}
+  if(newYear===activePeriod.year&&newMonth===activePeriod.month){alert('Anda sudah berada di periode '+periodName()+'.');return}
+  if(!confirm('Buka periode '+monthNames[newMonth]+' '+newYear+'?\n\nData '+current+' tetap tersimpan dan tidak akan dihapus.\nJika periode baru belum pernah dibuat, semua pembayaran akan dimulai dari Belum Bayar.'))return;
+  activePeriod={year:newYear,month:newMonth};
+  localStorage.setItem(periodKey,JSON.stringify(activePeriod));
+  state=JSON.parse(localStorage.getItem(dataKey())||'null')||customerStateForPeriod();
+  expenses=JSON.parse(localStorage.getItem(expenseDataKey())||'[]');
+  render();
+  alert('Berhasil pindah ke periode '+periodName()+'.');
+}
+
+let currentCustomer=null;
+function openCustomerModal(id){
+  currentCustomer=id?customers.find(x=>x.id===id):null;
+  document.getElementById('customerModalTitle').textContent=currentCustomer?'Edit Pelanggan':'Tambah Pelanggan';
+  document.getElementById('cId').value=currentCustomer?.id||('GS'+String(Math.max(39,...customers.map(x=>Number(String(x.id).replace(/\D/g,''))||0))+1).padStart(3,'0'));
+  document.getElementById('cName').value=currentCustomer?.name||'';
+  document.getElementById('cPppoe').value=currentCustomer?.pppoe||'';
+  document.getElementById('cPackage').value=currentCustomer?.package||'20 Mbps';
+  document.getElementById('cPrice').value=currentCustomer?.price??150000;
+  document.getElementById('cDue').value=currentCustomer?.due??3;
+  document.getElementById('cActive').value=String(currentCustomer?.active!==false);
+  document.getElementById('customerModal').style.display='flex';
+}
+function closeCustomerModal(){document.getElementById('customerModal').style.display='none';currentCustomer=null}
+function saveCustomer(){
+  const id=document.getElementById('cId').value.trim(), name=document.getElementById('cName').value.trim(), pppoe=document.getElementById('cPppoe').value.trim();
+  const pkg=document.getElementById('cPackage').value.trim(), price=Number(document.getElementById('cPrice').value), due=Number(document.getElementById('cDue').value);
+  const active=document.getElementById('cActive').value==='true';
+  if(!id||!name||!pppoe||!pkg||!price||due<1||due>31){alert('Lengkapi ID, nama, PPPoE, paket, harga, dan tanggal jatuh tempo.');return}
+  if(!currentCustomer && customers.some(x=>x.id===id)){alert('ID pelanggan sudah ada.');return}
+  if(currentCustomer && customers.some(x=>x.id===id&&x!==currentCustomer)){alert('ID pelanggan sudah dipakai.');return}
+  const updated={id,name,pppoe,package:pkg,price,due,active};
+  if(currentCustomer){
+    Object.assign(currentCustomer,updated);
+    const s=state.find(x=>x.id===id); if(s) Object.assign(s,updated);
+  }else{
+    customers.push(updated);
+    state.push({...updated,status:'Belum Bayar',paidDate:'',method:''});
+  }
+  save();closeCustomerModal();
+}
+function periodFromKey(key){
+  const m=String(key).match(/^gsnet_billing_(\d{4})_(\d{2})_v2$/);
+  return m?{year:Number(m[1]),month:Number(m[2])-1}:null;
+}
+function availablePeriods(){
+  const found={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i), p=periodFromKey(k||'');
+    if(p) found[`${p.year}-${p.month}`]=p;
+  }
+  found[`${activePeriod.year}-${activePeriod.month}`]=activePeriod;
+  return Object.values(found).sort((a,b)=>b.year-a.year||b.month-a.month);
+}
+function renderHistoryPeriod(){
+  const sel=document.getElementById('historyPeriod'); if(!sel)return;
+  const parts=String(sel.value||'').split('-'); if(parts.length!==2)return;
+  const p={year:Number(parts[0]),month:Number(parts[1])};
+  if(!Number.isInteger(p.year)||!Number.isInteger(p.month)||p.month<0||p.month>11)return;
+  const key=`gsnet_billing_${p.year}_${String(p.month+1).padStart(2,'0')}_v2`;
+  const data=JSON.parse(localStorage.getItem(key)||'null')||[];
+  const active=data.filter(x=>x.active!==false), paid=active.filter(x=>x.status==='Lunas');
+  const summary=document.getElementById('historyPeriodSummary');
+  const list=document.getElementById('historyList');
+  if(summary)summary.textContent=`${paid.length}/${active.length} lunas • Uang masuk ${rp(paid.reduce((a,x)=>a+Number(x.price||0),0))}`;
+  if(list)list.innerHTML=paid.map(x=>`<div class="row"><div><div class="name">${x.id} • ${x.name}</div><div class="meta">${monthNames[p.month]} ${p.year} • ${rp(Number(x.price||0))} • ${x.paidDate||'-'} • ${x.method||'-'}</div></div>${badge('Lunas')}</div>`).join('')||'<div class="card">Belum ada pembayaran tercatat pada periode ini.</div>';
+}
+function renderHistoryOptions(){
+  const sel=document.getElementById('historyPeriod'); if(!sel)return;
+  const old=sel.value, ps=availablePeriods();
+  sel.innerHTML=ps.map(p=>`<option value="${p.year}-${p.month}">${monthNames[p.month]} ${p.year}</option>`).join('');
+  const wanted=`${activePeriod.year}-${activePeriod.month}`;
+  sel.value=ps.some(p=>`${p.year}-${p.month}`===old)?old:wanted;
+  renderHistoryPeriod();
+}
+function resetData(){
+  if(confirm('Reset semua pembayaran '+periodName()+'?')){
+    localStorage.removeItem(dataKey());
+    state=customerStateForPeriod();
+    save();
+  }
+}
+render();
+</script></body></html>
